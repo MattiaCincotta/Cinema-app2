@@ -1,20 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'presentation/login_page.dart';
+import 'presentation/main_layout.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_auth/firebase_auth.dart'
+    show FirebaseAuth, User;
+// Import necessario per provider
+import 'package:provider/provider.dart';
+// Import del provider preferiti custom
+import 'providers/favorites_provider.dart';
+// Import del nuovo provider watchlist
+import 'providers/watchlist_provider.dart';
 
 void main() async {
-  // Fondamentale: assicura che i binding grafici siano pronti prima di chiamare Firebase
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  // Carica il file .env
+  await dotenv.load(fileName: ".env");
+
   // Inizializza Firebase con le impostazioni generate dalla CLI
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const MyApp()); // Usa il nome effettivo del tuo widget principale
+  // Wrappa MyApp in un MultiProvider che fornisce sia FavoritesProvider che WatchlistProvider
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => FavoritesProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => WatchlistProvider(),
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.active) {
+          final user = snapshot.data;
+          if (user != null) {
+            return const MainLayout();
+          } else {
+            return const LoginPage();
+          }
+        }
+        // Mostra un indicatore di caricamento mentre si verifica lo stato di autenticazione
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -34,7 +83,7 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.poppinsTextTheme(),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
+      home: const AuthGate(),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Movie {
   final int id;
@@ -7,6 +8,7 @@ class Movie {
   final String posterPath;
   final String overview;
   final double voteAverage;
+  final String? backdropPath; // Campo opzionale
 
   const Movie({
     required this.id,
@@ -14,6 +16,7 @@ class Movie {
     required this.posterPath,
     required this.overview,
     required this.voteAverage,
+    this.backdropPath,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -23,35 +26,23 @@ class Movie {
       posterPath: json['poster_path'] as String? ?? '',
       overview: json['overview'] as String? ?? '',
       voteAverage: (json['vote_average'] as num?)?.toDouble() ?? 0.0,
+      backdropPath: json['backdrop_path'] as String?, // Estrazione del campo opzionale
     );
   }
 }
 
 class TmdbService {
-  static const String _baseUrl = 'https://api.themoviedb.org/3';
-  static const String _apiKey = String.fromEnvironment('TMDB_API_KEY');
+  // Recupera la chiave, se non la trova usa una stringa vuota di fallback
+  final String apiKey = dotenv.env['TMDB_API_KEY'] ?? '';
 
   Future<List<Movie>> getPopularMovies() async {
     try {
-      if (_apiKey.isEmpty) {
-        throw StateError(
-          'TMDB_API_KEY mancante. Avvia l\'app con '
-          '--dart-define=TMDB_API_KEY=... oppure '
-          '--dart-define-from-file=dart_defines.json',
-        );
-      }
-
-      final uri = Uri.parse('$_baseUrl/movie/popular').replace(
-        queryParameters: {
-          'api_key': _apiKey,
-        },
-      );
-      final response = await http.get(uri);
+      final url = 'https://api.themoviedb.org/3/movie/popular?api_key=$apiKey&language=it-IT';
+      final response = await http.get(Uri.parse(url));
 
       if (response.statusCode != 200) {
         throw Exception(
-          'Errore nel caricamento dei film: ${response.statusCode}',
-        );
+            'Errore nel caricamento dei film: ${response.statusCode}');
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -62,6 +53,27 @@ class TmdbService {
           .toList();
     } catch (e) {
       throw Exception('Impossibile recuperare i film popolari: $e');
+    }
+  }
+
+  Future<List<Movie>> getMoviesByGenre(int genreId) async {
+    try {
+      final url = 'https://api.themoviedb.org/3/discover/movie?api_key=$apiKey&language=it-IT&with_genres=$genreId';
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Errore nel caricamento dei film per genere: ${response.statusCode}');
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final results = data['results'] as List<dynamic>? ?? [];
+
+      return results
+          .map((item) => Movie.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('Impossibile recuperare i film per genere: $e');
     }
   }
 }
