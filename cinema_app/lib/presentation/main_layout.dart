@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'home_tab.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({Key? key}) : super(key: key);
+  const MainLayout({super.key});
 
   @override
   _MainLayoutState createState() => _MainLayoutState();

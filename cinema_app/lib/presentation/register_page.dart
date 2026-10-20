@@ -1,9 +1,12 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../data/auth_service.dart';
+import 'main_layout.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({Key? key}) : super(key: key);
+  const RegisterPage({super.key});
 
   @override
   _RegisterPageState createState() => _RegisterPageState();
@@ -19,6 +22,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -34,7 +38,7 @@ class _RegisterPageState extends State<RegisterPage> {
       labelText: label,
       labelStyle: const TextStyle(color: Colors.white70),
       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+        borderSide: BorderSide(color: Colors.white.withOpacity(0.25)),
         borderRadius: BorderRadius.circular(16),
       ),
       focusedBorder: OutlineInputBorder(
@@ -50,13 +54,118 @@ class _RegisterPageState extends State<RegisterPage> {
         borderRadius: BorderRadius.circular(16),
       ),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.08),
+      fillColor: Colors.white.withOpacity(0.08),
     );
   }
 
-  void _onRegister() {
+  Future<void> _onRegister() async {
+    final String email = _emailController.text.trim();
+    final String password = _passwordController.text.trim();
+    final String confirmPassword = _confirmPasswordController.text.trim();
+
+    // Controllo validità locale dell'email
+    if (!email.contains('@') || !email.contains('.')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inserisci un indirizzo email valido'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    // Controllo lunghezza password
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La password deve avere almeno 6 caratteri'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    // Controllo password coincidano
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Le password non combaciano'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     if (_formKey.currentState?.validate() ?? false) {
-      // Handle registration logic here
+      setState(() {
+        _isLoading = true;
+      });
+      try {
+        final AuthService authService = AuthService();
+        final userCredential = await authService.signUp(email, password);
+
+        if (userCredential != null) {
+          // Registrazione avvenuta con successo
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const MainLayout()),
+          );
+        } else {
+          // Nel caso AuthService non lanci eccezioni ma ritorni semplicemente null:
+          if (!mounted) return;
+          print('Registrazione fallita: userCredential è null');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registrazione fallita (errore generico)'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
+        // Gestione specifica per codice 'email-already-in-use'
+        if (e.code == 'email-already-in-use') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                  'Questa email è già associata a un altro account. Prova ad accedere o usa un indirizzo diverso'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        } else {
+          String errorMsg;
+          switch (e.code) {
+            case 'invalid-email':
+              errorMsg = "Il formato dell'email non è valido";
+              break;
+            case 'weak-password':
+              errorMsg = "La password è troppo debole";
+              break;
+            default:
+              errorMsg = 'Errore sconosciuto';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Si è verificato un errore imprevisto: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
@@ -89,10 +198,10 @@ class _RegisterPageState extends State<RegisterPage> {
                     constraints: const BoxConstraints(maxWidth: 420),
                     padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: Colors.white.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.18),
+                        color: Colors.white.withOpacity(0.18),
                       ),
                     ),
                     child: Form(
@@ -205,7 +314,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _onRegister,
+                              onPressed: _isLoading ? null : _onRegister,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6366F1),
                                 foregroundColor: Colors.white,
@@ -220,7 +329,16 @@ class _RegisterPageState extends State<RegisterPage> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              child: const Text('Registrati'),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 26,
+                                      height: 26,
+                                      child: CircularProgressIndicator(
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        strokeWidth: 3.0,
+                                      ),
+                                    )
+                                  : const Text('Registrati'),
                             ),
                           ),
                           const SizedBox(height: 8),

@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'presentation/login_page.dart';
-import 'presentation/main_layout.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  // Fondamentale: assicura che i binding grafici siano pronti prima di chiamare Firebase
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inizializza Firebase con le impostazioni generate dalla CLI
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(const MyApp()); // Usa il nome effettivo del tuo widget principale
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
