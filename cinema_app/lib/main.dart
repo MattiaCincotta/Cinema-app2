@@ -13,6 +13,8 @@ import 'package:provider/provider.dart';
 import 'providers/favorites_provider.dart';
 // Import del nuovo provider watchlist
 import 'providers/watchlist_provider.dart';
+// Import del provider per la gestione della lingua
+import 'providers/locale_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +27,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Wrappa MyApp in un MultiProvider che fornisce sia FavoritesProvider che WatchlistProvider
+  // Wrappa MyApp in un MultiProvider che fornisce sia FavoritesProvider che WatchlistProvider che LocaleProvider
   runApp(
     MultiProvider(
       providers: [
@@ -34,6 +36,9 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => WatchlistProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => LocaleProvider(),
         ),
       ],
       child: const MyApp(),
@@ -74,11 +79,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        scaffoldBackgroundColor: Colors.black, // Sfondo globale nero assoluto
         primaryColor: const Color(0xFF6366F1),
         colorScheme: ColorScheme.dark(
           primary: const Color(0xFF6366F1),
-          surface: const Color(0xFF0F172A),
+          surface: Colors.black, // Colore surface impostato su nero profondo
         ),
         textTheme: GoogleFonts.poppinsTextTheme(),
         useMaterial3: true,
