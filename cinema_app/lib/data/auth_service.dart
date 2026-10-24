@@ -31,4 +31,13 @@ class AuthService {
     }
     return null;
   }
+
+  // Metodo di logout: controlla che la funzione abbia effettivamente questo nome nel tuo progetto!
+  Future<void> logout() async {
+    try {
+      await _firebaseAuth.signOut();
+    } catch (e) {
+      debugPrint('Errore nel logout: $e');
+    }
+  }
 }

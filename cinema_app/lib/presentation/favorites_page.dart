@@ -20,7 +20,7 @@ class FavoritesPage extends StatelessWidget {
         leading: IconButton(
           icon: Icon(
             Ionicons.chevronBackOutline,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
             size: 24,
           ),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -90,7 +90,7 @@ class FavoritesPage extends StatelessWidget {
                   final movie = favorites[index];
                   final posterPath = movie.posterPath;
                   // Gestisci poster null o vuoto in modo simile a SearchPage
-                  if (posterPath == null || posterPath.isEmpty) {
+                  if (posterPath.isEmpty) {
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Container(

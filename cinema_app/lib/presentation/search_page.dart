@@ -1,33 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:ionicons/ionicons.dart';
 import 'package:provider/provider.dart';
-import '../data/tmdb_service.dart';
 import 'movie_details_dialog.dart';
-import '../utils/parser_utils.dart' show ParserUtils;
 import '../presentation/widgets/filter_bottom_sheet.dart';
 import '../providers/locale_provider.dart';
+import '../providers/search_provider.dart';
 
 class SearchPage extends StatefulWidget {
   final String? initialQuery;
-  const SearchPage({Key? key, this.initialQuery}) : super(key: key);
+  const SearchPage({super.key, this.initialQuery});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final TmdbService _tmdbService = TmdbService();
-  List<Movie> _searchResults = [];
-  bool _isLoading = false;
-  String _searchQuery = '';
+  late final TextEditingController _searchController;
+  late final ScrollController _scrollController;
+  late final TextEditingController _directorController;
 
-  late TextEditingController _searchController;
-
-  String? _selectedGenre;
-  String? _selectedYear;
-  double _selectedRating = 0;
-  late TextEditingController _directorController;
-
+  // Generi e anni unici usati come filtri
   final Map<String, int> _genres = {
     'Azione': 28,
     'Commedia': 35,
@@ -38,15 +30,8 @@ class _SearchPageState extends State<SearchPage> {
     'Sci-Fi': 878,
     'Thriller': 53,
   };
-
   final List<String> _years =
       List<String>.generate(30, (i) => (DateTime.now().year - i).toString());
-
-  // Dichiarazione dello ScrollController per la paginazione infinita
-  late final ScrollController _scrollController;
-  int _currentPage = 1;
-  bool _isFetchingMore = false;
-  bool _hasMoreResults = true;
 
   @override
   void initState() {
@@ -57,131 +42,34 @@ class _SearchPageState extends State<SearchPage> {
     _scrollController.addListener(_onScroll);
 
     if (widget.initialQuery != null && widget.initialQuery!.trim().isNotEmpty) {
-      _searchQuery = widget.initialQuery!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _triggerInitialSearch();
+        final provider = context.read<SearchProvider>();
+        provider.search(widget.initialQuery!.trim());
       });
     }
   }
 
-  // Listener per gestione paginazione infinita
   void _onScroll() {
-    // Se l'utente si avvicina a 200 pixel dalla fine ed è consentito caricare ancora risultati, procedi con la paginazione
-    if (_hasMoreResults &&
-        !_isFetchingMore &&
-        !_isLoading &&
-        _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      _fetchNextPage();
-    }
-  }
-
-  Future<void> _triggerInitialSearch() async {
-    setState(() {
-      _isLoading = true;
-      _currentPage = 1;
-      _hasMoreResults = true;
-    });
-    try {
-      final results = await _tmdbService.searchMovies(_searchQuery, page: 1);
-      setState(() {
-        _searchResults = results;
-        _isLoading = false;
-        _currentPage = 1;
-        _hasMoreResults = results.isNotEmpty;
-      });
-    } catch (e) {
-      setState(() {
-        _searchResults = [];
-        _isLoading = false;
-        _hasMoreResults = false;
-      });
-    }
-  }
-
-  Future<void> _onSearchChanged(String value) async {
-    _searchQuery = value;
-    if (value.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _hasMoreResults = true;
-        _currentPage = 1;
-      });
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _currentPage = 1;
-      _hasMoreResults = true;
-    });
-    try {
-      final results = await _tmdbService.searchMovies(value, page: 1);
-      setState(() {
-        _searchResults = results;
-        _isLoading = false;
-        _currentPage = 1;
-        _hasMoreResults = results.isNotEmpty;
-      });
-    } catch (e) {
-      setState(() {
-        _searchResults = [];
-        _isLoading = false;
-        _hasMoreResults = false;
-      });
-    }
-  }
-
-  Future<void> _fetchNextPage() async {
-    if (!_hasMoreResults) return;
-    setState(() {
-      _isFetchingMore = true;
-    });
-    try {
-      final nextPage = _currentPage + 1;
-      List<Movie> newResults = [];
-      // Decidi se chiamare la search o la filter API in base alla presenza di filtri avanzati
-      if (_selectedGenre != null || _selectedYear != null || _selectedRating > 0 || _directorController.text.trim().isNotEmpty) {
-        int? genreId;
-        if (_selectedGenre != null && _genres[_selectedGenre!] != null) {
-          genreId = _genres[_selectedGenre!];
-        }
-        newResults = await _tmdbService.filterMovies(
-          genreId: genreId,
-          year: _selectedYear != null ? int.tryParse(_selectedYear!) : null,
-          minRating: _selectedRating,
-          director: _directorController.text.trim().isEmpty ? null : _directorController.text.trim(),
-          query: _searchQuery.trim().isEmpty ? null : _searchQuery.trim(),
-          page: nextPage,
-        );
-      } else {
-        newResults = await _tmdbService.searchMovies(_searchQuery, page: nextPage);
-      }
-
-      setState(() {
-        if (newResults.isNotEmpty) {
-          _searchResults.addAll(newResults);
-          _currentPage = nextPage;
-        } 
-        // Se il numero di risultati nuovi è zero, niente più pagine disponibili
-        _hasMoreResults = newResults.isNotEmpty;
-        _isFetchingMore = false;
-      });
-    } catch (_) {
-      setState(() {
-        _isFetchingMore = false;
-        _hasMoreResults = false;
-      });
+    final provider = context.read<SearchProvider>();
+    final scrollPosition = _scrollController.position;
+    if (provider.hasMore &&
+        !provider.isFetchingMore &&
+        !provider.isLoading &&
+        scrollPosition.pixels >= scrollPosition.maxScrollExtent - 200) {
+      provider.fetchNextPage();
     }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _directorController.dispose();
     _scrollController.dispose();
+    _directorController.dispose();
     super.dispose();
   }
 
   Future<void> _openFilterModal() async {
+    final provider = context.read<SearchProvider>();
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
@@ -191,10 +79,11 @@ class _SearchPageState extends State<SearchPage> {
       backgroundColor: const Color(0xFF232338),
       builder: (context) {
         return FilterBottomSheet(
-          initialGenre: _selectedGenre,
-          initialYear: _selectedYear,
-          initialRating: _selectedRating,
-          initialDirector: _directorController.text,
+          initialGenre: provider.selectedGenre,
+          initialYear: provider.selectedYear,
+          initialRating: provider.selectedRating,
+          // Se serve un filtro regista, va aggiunto a SearchProvider
+          initialDirector: null,
           genres: _genres,
           years: _years,
         );
@@ -202,57 +91,33 @@ class _SearchPageState extends State<SearchPage> {
     );
 
     if (result != null) {
-      setState(() {
-        _selectedGenre = result['genre'] as String?;
-        _selectedYear = result['year'] as String?;
-        _selectedRating = (result['rating'] ?? 0) is double
-            ? result['rating']
-            : (result['rating'] is num
-                ? (result['rating'] as num).toDouble()
-                : 0.0);
-        _directorController.text = result['director'] ?? '';
-        _isLoading = true;
-        _currentPage = 1;
-        _hasMoreResults = true;
-      });
+      String? selectedGenre = result['genre'] as String?;
+      String? selectedYear = result['year'] as String?;
+      double selectedRating = (result['rating'] ?? 0) is double
+          ? result['rating']
+          : (result['rating'] is num
+              ? (result['rating'] as num).toDouble()
+              : 0.0);
+      // Supporto per director solo se gestito a livello di provider
+      // String director = result['director'] ?? '';
+      // provider.applyFilters(genre: selectedGenre, year: selectedYear, rating: selectedRating, director: director, genresMap: _genres);
 
-      try {
-        // Trasforma il genere selezionato in identificatore numerico per il filtro se disponibile
-        int? genreId;
-        if (_selectedGenre != null && _genres[_selectedGenre!] != null) {
-          genreId = _genres[_selectedGenre!];
-        }
-        // Seleziona l'anno intero se _selectedYear valorizzato altrimenti passa null
-        // Vietato usare qualsiasi tipo di carattere di parentesi nei commenti testuali
-        final filteredResults = await _tmdbService.filterMovies(
-          genreId: genreId,
-          year: _selectedYear != null ? int.tryParse(_selectedYear!) : null,
-          minRating: _selectedRating,
-          director: _directorController.text.trim().isEmpty
-              ? null
-              : _directorController.text.trim(),
-          query: _searchQuery.trim().isEmpty ? null : _searchQuery.trim(),
-          page: 1,
-        );
-        setState(() {
-          _searchResults = filteredResults;
-          _isLoading = false;
-          _currentPage = 1;
-          _hasMoreResults = filteredResults.isNotEmpty;
-        });
-      } catch (_) {
-        setState(() {
-          _searchResults = [];
-          _isLoading = false;
-          _hasMoreResults = false;
-        });
-      }
+      // Solo i filtri forniti da SearchProvider
+      provider.setSelectedGenre(selectedGenre);
+      provider.setSelectedYear(selectedYear);
+      provider.setSelectedRating(selectedRating);
+      provider.search(provider.searchQuery);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final localeProvider = context.watch<LocaleProvider>();
+    final searchProvider = context.watch<SearchProvider>();
+    final List<dynamic> searchResults = searchProvider.searchResults;
+    final bool isLoading = searchProvider.isLoading;
+    final bool isFetchingMore = searchProvider.isFetchingMore;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -260,13 +125,14 @@ class _SearchPageState extends State<SearchPage> {
         leading: IconButton(
           icon: Icon(
             Ionicons.chevronBackOutline,
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withAlpha((0.9 * 255).toInt()),
+       
             size: 24,
           ),
           onPressed: () {
             Navigator.of(context).maybePop();
           },
-          tooltip: localeProvider.translate('search'), // dynamic translation for tooltip
+          tooltip: localeProvider.translate('search'),
         ),
         title: TextField(
           controller: _searchController,
@@ -274,29 +140,33 @@ class _SearchPageState extends State<SearchPage> {
           cursorColor: Colors.white,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: localeProvider.translate('search'), // dynamic translation for hint
+            hintText: localeProvider.translate('search'),
             hintStyle: const TextStyle(color: Colors.white54),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
           ),
-          onChanged: _onSearchChanged,
+          onChanged: (value) {
+            final provider = context.read<SearchProvider>();
+            provider.search(value);
+          },
         ),
         actions: [
           IconButton(
             icon: Icon(
               Ionicons.optionsOutline,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withAlpha((0.9 * 255).toInt()),
+         
               size: 24,
             ),
-            tooltip: localeProvider.translate('favorites'), // example: translate favorites as "Filtri"
+            tooltip: localeProvider.translate('favorites'),
             onPressed: _openFilterModal,
           ),
         ],
       ),
-      body: _isLoading
+      body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : (_searchResults.isEmpty
+          : (searchResults.isEmpty
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32),
@@ -326,7 +196,7 @@ class _SearchPageState extends State<SearchPage> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            localeProvider.translate('search'), // translate "search" context
+                            localeProvider.translate('search'),
                             style: const TextStyle(
                               color: Colors.white54,
                               fontSize: 16,
@@ -349,7 +219,7 @@ class _SearchPageState extends State<SearchPage> {
                           Expanded(
                             child: GridView.builder(
                               controller: _scrollController,
-                              itemCount: _searchResults.length,
+                              itemCount: searchResults.length,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
@@ -358,10 +228,10 @@ class _SearchPageState extends State<SearchPage> {
                                 childAspectRatio: 0.66,
                               ),
                               itemBuilder: (context, index) {
-                                final movie = _searchResults[index];
+                                final movie = searchResults[index];
                                 final poster = movie.posterPath;
 
-                                // Se il poster è nullo o vuoto, mostra subito un contenitore grigio scuro con testo grigio chiaro
+                                // Se il poster è nullo o vuoto mostra contenitore grigio scuro con testo grigio chiaro
                                 if (poster == null || poster.isEmpty) {
                                   return GestureDetector(
                                     onTap: () {
@@ -377,7 +247,7 @@ class _SearchPageState extends State<SearchPage> {
                                         color: Colors.grey[900],
                                         child: Center(
                                           child: Text(
-                                            localeProvider.translate('watchlist'), // dynamic translation for "Nessun poster"
+                                            localeProvider.translate('watchlist'),
                                             style: const TextStyle(
                                               color: Colors.white54,
                                             ),
@@ -430,7 +300,7 @@ class _SearchPageState extends State<SearchPage> {
                               },
                             ),
                           ),
-                          if (_isFetchingMore)
+                          if (isFetchingMore)
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
                               child: Center(

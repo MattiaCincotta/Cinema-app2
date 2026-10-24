@@ -9,7 +9,7 @@ class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  _RegisterPageState createState() => _RegisterPageState();
+  State createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
@@ -17,8 +17,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -38,7 +37,7 @@ class _RegisterPageState extends State<RegisterPage> {
       labelText: label,
       labelStyle: const TextStyle(color: Colors.white70),
       enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.25)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
         borderRadius: BorderRadius.circular(16),
       ),
       focusedBorder: OutlineInputBorder(
@@ -54,7 +53,37 @@ class _RegisterPageState extends State<RegisterPage> {
         borderRadius: BorderRadius.circular(16),
       ),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.08),
+      fillColor: Colors.white.withValues(alpha: 0.08),
+    );
+  }
+
+  void _showCustomErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFE53935),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+        elevation: 8,
+        duration: const Duration(seconds: 4),
+      ),
     );
   }
 
@@ -65,34 +94,19 @@ class _RegisterPageState extends State<RegisterPage> {
 
     // Controllo validità locale dell'email
     if (!email.contains('@') || !email.contains('.')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Inserisci un indirizzo email valido'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showCustomErrorSnackbar('Inserisci un indirizzo email valido');
       return;
     }
 
     // Controllo lunghezza password
     if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La password deve avere almeno 6 caratteri'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showCustomErrorSnackbar('La password deve avere almeno 6 caratteri');
       return;
     }
 
     // Controllo password coincidano
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Le password non combaciano'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showCustomErrorSnackbar('Le password non combaciano');
       return;
     }
 
@@ -113,25 +127,14 @@ class _RegisterPageState extends State<RegisterPage> {
         } else {
           // Nel caso AuthService non lanci eccezioni ma ritorni semplicemente null:
           if (!mounted) return;
-          print('Registrazione fallita: userCredential è null');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registrazione fallita (errore generico)'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          _showCustomErrorSnackbar('Registrazione fallita (errore generico)');
         }
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         // Gestione specifica per codice 'email-already-in-use'
         if (e.code == 'email-already-in-use') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                  'Questa email è già associata a un altro account. Prova ad accedere o usa un indirizzo diverso'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          _showCustomErrorSnackbar(
+              'Questa email è già associata a un altro account. Prova ad accedere o usa un indirizzo diverso');
         } else {
           String errorMsg;
           switch (e.code) {
@@ -144,21 +147,11 @@ class _RegisterPageState extends State<RegisterPage> {
             default:
               errorMsg = 'Errore sconosciuto';
           }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMsg),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          _showCustomErrorSnackbar(errorMsg);
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Si è verificato un errore imprevisto: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        _showCustomErrorSnackbar('Si è verificato un errore imprevisto: $e');
       } finally {
         if (mounted) {
           setState(() {
@@ -198,10 +191,10 @@ class _RegisterPageState extends State<RegisterPage> {
                     constraints: const BoxConstraints(maxWidth: 420),
                     padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
+                      color: Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.18),
+                        color: Colors.white.withValues(alpha: 0.18),
                       ),
                     ),
                     child: Form(
@@ -241,8 +234,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               if (value == null || value.isEmpty) {
                                 return 'Inserisci la tua email';
                               }
-                              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                                  .hasMatch(value)) {
+                              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
                                 return 'Email non valida';
                               }
                               return null;
@@ -256,9 +248,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             decoration: _fieldDecoration('Password').copyWith(
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
+                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
                                   color: Colors.white54,
                                 ),
                                 onPressed: () {
@@ -283,19 +273,15 @@ class _RegisterPageState extends State<RegisterPage> {
                             controller: _confirmPasswordController,
                             obscureText: _obscureConfirmPassword,
                             style: const TextStyle(color: Colors.white),
-                            decoration:
-                                _fieldDecoration('Conferma Password').copyWith(
+                            decoration: _fieldDecoration('Conferma Password').copyWith(
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscureConfirmPassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
+                                  _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
                                   color: Colors.white54,
                                 ),
                                 onPressed: () {
                                   setState(() {
-                                    _obscureConfirmPassword =
-                                        !_obscureConfirmPassword;
+                                    _obscureConfirmPassword = !_obscureConfirmPassword;
                                   });
                                 },
                               ),

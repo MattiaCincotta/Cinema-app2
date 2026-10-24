@@ -5,7 +5,7 @@ import '../../data/tmdb_service.dart'; // Assicurati che il path sia corretto e 
 class HoverMovieCard extends StatefulWidget {
   final Movie movie;
   final VoidCallback onTap;
-  const HoverMovieCard({Key? key, required this.movie, required this.onTap}) : super(key: key);
+  const HoverMovieCard({super.key, required this.movie, required this.onTap});
 
   @override
   State<HoverMovieCard> createState() => _HoverMovieCardState();

@@ -10,7 +10,7 @@ import 'package:cinema_app/providers/locale_provider.dart';
 class MovieDetailsDialog extends StatefulWidget {
   final Movie movie;
 
-  const MovieDetailsDialog({Key? key, required this.movie}) : super(key: key);
+  const MovieDetailsDialog({super.key, required this.movie});
 
   @override
   State<MovieDetailsDialog> createState() => _MovieDetailsDialogState();
@@ -64,12 +64,13 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
         _showTrailer = true;
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.watch<LocaleProvider>().translate('trailer_not_available')),
-          behavior: SnackBarBehavior.floating,
-        ),
+      if (!mounted) return;
+      final localeProvider = context.read<LocaleProvider>();
+      final snackBar = SnackBar(
+        content: Text(localeProvider.translate('trailer_not_available')),
+        behavior: SnackBarBehavior.floating,
       );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
@@ -78,11 +79,13 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
     final localeProvider = context.watch<LocaleProvider>();
     String? backdropPath = widget.movie.backdropPath != null && widget.movie.backdropPath!.isNotEmpty
         ? widget.movie.backdropPath
-        : (widget.movie.posterPath != null && widget.movie.posterPath!.isNotEmpty ? widget.movie.posterPath : null);
+        : (widget.movie.posterPath.isNotEmpty ? widget.movie.posterPath : null);
 
     final String imageUrl = backdropPath != null
         ? 'https://image.tmdb.org/t/p/w780$backdropPath'
         : '';
+
+    final double rating = widget.movie.voteAverage;
 
     return Dialog(
       backgroundColor: Colors.grey[900],
@@ -174,7 +177,7 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
                             ? Row(
                                 children: [
                                   Text(
-                                    localeProvider.translate('directed_by') + ' ',
+                                    '${localeProvider.translate('directed_by')} ',
                                     style: const TextStyle(
                                       fontStyle: FontStyle.italic,
                                       color: Color(0xFFCCCCCC),
@@ -197,10 +200,9 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
                                 ],
                               )
                             : Text(
-                                localeProvider.translate('directed_by') + ' ' +
-                                    ((_director != null && _director!.isNotEmpty)
+                                '${localeProvider.translate('directed_by')} ${(_director != null && _director!.isNotEmpty)
                                         ? _director!
-                                        : localeProvider.translate('unknown')),
+                                        : localeProvider.translate('unknown')}',
                                 style: const TextStyle(
                                   fontStyle: FontStyle.italic,
                                   color: Color(0xFFCCCCCC),
@@ -216,10 +218,11 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
                         children: [
                           const Icon(Icons.star, color: Color(0xFFFFD600), size: 24),
                           const SizedBox(width: 6),
+                          // Sostituito il Text qui con la nuova logica richiesta
                           Text(
-                            widget.movie.voteAverage > 0.0
-                                ? widget.movie.voteAverage.toStringAsFixed(1)
-                                : localeProvider.translate('not_available_short'),
+                            rating > 0
+                                ? rating.toStringAsFixed(1)
+                                : context.watch<LocaleProvider>().translate('not_available_short'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -243,9 +246,14 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
                         textAlign: TextAlign.left,
                       ),
                       const SizedBox(height: 26),
-                      Row(
+                      // Replaced Row+Expanded buttons with a Wrap layout for responsive multi-line buttons
+                      Wrap(
+                        spacing: 10, // Spazio orizzontale tra i pulsanti
+                        runSpacing: 10, // Spazio verticale tra le righe
+                        alignment: WrapAlignment.center,
                         children: [
-                          Expanded(
+                          SizedBox(
+                            width: 165, // Ogni pulsante copre una larghezza fissa per migliore impaginazione su 2 colonne
                             child: Consumer<FavoritesProvider>(
                               builder: (context, favoritesProvider, _) {
                                 final isFavorite = favoritesProvider.isFavorite(widget.movie);
@@ -260,10 +268,11 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
                                   label: Text(
                                     isFavorite
                                         ? localeProvider.translate('remove_from_favorites')
-                                        : localeProvider.translate('add_to_favorites'),
+                                        : context.read<LocaleProvider>().translate('add_to_favorites'),
+                                    textAlign: TextAlign.center,
                                     style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
@@ -279,8 +288,8 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
                               },
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
+                          SizedBox(
+                            width: 165,
                             child: Consumer<WatchlistProvider>(
                               builder: (context, watchlistProvider, _) {
                                 final isInWatchlist = watchlistProvider.isInWatchlist(widget.movie);
@@ -318,8 +327,8 @@ class _MovieDetailsDialogState extends State<MovieDetailsDialog> {
                               },
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
+                          SizedBox(
+                            width: 165,
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 _launchTrailer();

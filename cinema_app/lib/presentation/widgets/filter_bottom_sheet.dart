@@ -10,14 +10,14 @@ class FilterBottomSheet extends StatefulWidget {
   final List<String>? years;
 
   const FilterBottomSheet({
-    Key? key,
+    super.key,
     this.initialGenre,
     this.initialYear,
     this.initialDirector,
     this.initialRating,
     required this.genres,
     this.years,
-  }) : super(key: key);
+  });
 
   @override
   State<FilterBottomSheet> createState() => _FilterBottomSheetState();
@@ -71,7 +71,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               const SizedBox(height: 20),
               // Selettore Genere - usa le chiavi della mappa come etichetta
               DropdownButtonFormField<String>(
-                value: _selectedGenre,
+                initialValue: _selectedGenre,
                 hint: const Text(
                   'Genere',
                   style: TextStyle(color: Colors.white),
@@ -104,7 +104,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedYear,
+                initialValue: _selectedYear,
                 hint: const Text(
                   'Anno',
                   style: TextStyle(color: Colors.white),

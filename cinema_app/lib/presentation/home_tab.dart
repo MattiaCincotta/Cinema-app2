@@ -88,11 +88,11 @@ class _HomeTabState extends State<HomeTab> {
         actionList = List.from(action);
         comedyList = List.from(comedy);
       });
-      print('Lunghezza lista Azione: ${actionList.length}');
-      print('Lunghezza lista Commedia: ${comedyList.length}');
+      // print eliminato
+      // print eliminato
     } catch (e) {
       // Ignora errori gestione errori viene fatta altrove senza caratteri di parentesi nei commenti testuali
-      print('Errore fetching Azione o Commedia $e');
+      // print eliminato
     }
   }
 
@@ -146,8 +146,10 @@ class _HomeTabState extends State<HomeTab> {
 
     return Scaffold(
       body: ListView(
+        // ignore: deprecated_member_use
+        cacheExtent: 2500.0,
         padding: EdgeInsets.zero,
-        cacheExtent: 2500,
+   
         children: [
           if (heroCarouselMovies.isNotEmpty)
             HeroCarousel(movies: heroCarouselMovies),

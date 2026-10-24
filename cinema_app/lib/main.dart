@@ -15,6 +15,8 @@ import 'providers/favorites_provider.dart';
 import 'providers/watchlist_provider.dart';
 // Import del provider per la gestione della lingua
 import 'providers/locale_provider.dart';
+// Import del SearchProvider
+import 'providers/search_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +29,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Wrappa MyApp in un MultiProvider che fornisce sia FavoritesProvider che WatchlistProvider che LocaleProvider
+  // Wrappa MyApp in un MultiProvider che ora fornisce anche SearchProvider
   runApp(
     MultiProvider(
       providers: [
@@ -39,6 +41,9 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => LocaleProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => SearchProvider(),
         ),
       ],
       child: const MyApp(),

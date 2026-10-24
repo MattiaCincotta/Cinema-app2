@@ -3,6 +3,8 @@ import 'package:ionicons/ionicons.dart';
 import '../data/tmdb_service.dart' show Movie;
 import 'movie_details_dialog.dart';
 import 'package:cinema_app/presentation/widgets/hover_movie_card.dart';
+import 'package:cinema_app/providers/locale_provider.dart';
+import 'package:provider/provider.dart';
 
 // Callback che accetta il numero di pagina e restituisce una Future di lista di Movie
 typedef MovieFetcher = Future<List<Movie>> Function(int);
@@ -12,10 +14,10 @@ class CategoryPage extends StatefulWidget {
   final Future<List<Movie>> Function(int) fetchMovies;
 
   const CategoryPage({
-    Key? key,
+    super.key,
     required this.title,
     required this.fetchMovies,
-  }) : super(key: key);
+  });
 
   @override
   State<CategoryPage> createState() => _CategoryPageState();
@@ -34,8 +36,9 @@ class _CategoryPageState extends State<CategoryPage> {
     _loadInitial();
     _scrollController.addListener(() {
       // Quando lo scroll supera la soglia dal fondo, tenta di caricare altri film. Nessuna parentesi consentita nei commenti
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 500)
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 500) {
         _loadMore();
+      }
     });
   }
 
@@ -51,14 +54,15 @@ class _CategoryPageState extends State<CategoryPage> {
       // Dopo aver impostato _isLoadingInitial a false, controlla se serve caricare più film per riempire lo schermo vuoto. Nessuna parentesi consentita nei commenti
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients &&
-            _scrollController.position.maxScrollExtent < 100)
+            _scrollController.position.maxScrollExtent < 100) {
           _loadMore();
+        }
       });
     } catch (e) {
       setState(() {
         _isLoadingInitial = false;
       });
-      print('Errore iniziale nel caricamento dei film: $e');
+      // print eliminato
     }
   }
 
@@ -74,7 +78,7 @@ class _CategoryPageState extends State<CategoryPage> {
         _movies.addAll(moreMovies);
       });
     } catch (e) {
-      print('Errore durante la paginazione: $e');
+      // print eliminato
     } finally {
       setState(() {
         _isFetchingMore = false;
@@ -130,12 +134,13 @@ class _CategoryPageState extends State<CategoryPage> {
                   child: GridView.builder(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
-                    // Usa crossAxisCount impostato a 6 per dimezzare le colonne ed evitare lag. Nessuna parentesi consentita nei commenti
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 6,
-                      childAspectRatio: 0.7,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
+                    // Mostra 3 colonne sui telefoni e 5 o piu sui monitor larghi
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: MediaQuery.of(context).size.width > 600 ? 5 : 3,
+                      // Valore ideale per mantenere l aspetto verticale delle locandine
+                      childAspectRatio: 0.68,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
                     ),
                     itemCount: _movies.length,
                     itemBuilder: (context, index) {
@@ -195,16 +200,16 @@ class _CategoryPageState extends State<CategoryPage> {
                               )
                             : Row(
                                 mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Icon(
+                                children: [
+                                  const Icon(
                                     Ionicons.chevronDownOutline,
                                     color: Colors.white,
                                     size: 18,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    'Scorri per caricare altri film',
-                                    style: TextStyle(
+                                    context.watch<LocaleProvider>().translate('scroll_to_load_more'),
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w300,

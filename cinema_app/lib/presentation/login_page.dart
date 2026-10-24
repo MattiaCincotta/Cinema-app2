@@ -10,7 +10,7 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  State createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -53,6 +53,36 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFE53935),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+        elevation: 8,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   Future<void> _onLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() {
@@ -70,21 +100,11 @@ class _LoginPageState extends State<LoginPage> {
           );
         } else {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email o password errati.'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
+          _showErrorSnackbar('Email o password errati.');
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Si è verificato un errore durante l\'accesso: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        _showErrorSnackbar('Si è verificato un errore durante l\'accesso: $e');
       } finally {
         if (mounted) {
           setState(() {

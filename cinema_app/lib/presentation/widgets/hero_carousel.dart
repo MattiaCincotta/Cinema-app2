@@ -6,7 +6,7 @@ import '../movie_details_dialog.dart' ; // Import corretto per MovieDetailsDialo
 class HeroCarousel extends StatefulWidget {
   final List<Movie> movies;
 
-  const HeroCarousel({Key? key, required this.movies}) : super(key: key);
+  const HeroCarousel({super.key, required this.movies});
 
   @override
   State<HeroCarousel> createState() => _HeroCarouselState();
@@ -70,7 +70,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
           final movie = widget.movies[index];
           String? heroImagePath = (movie.backdropPath != null && movie.backdropPath!.isNotEmpty)
               ? movie.backdropPath
-              : (movie.posterPath != null && movie.posterPath!.isNotEmpty ? movie.posterPath! : null);
+              : (movie.posterPath.isNotEmpty ? movie.posterPath : null);
 
           final String imageUrl = heroImagePath != null
               ? 'https://image.tmdb.org/t/p/w1280$heroImagePath'

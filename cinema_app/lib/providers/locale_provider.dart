@@ -70,6 +70,46 @@ class LocaleProvider extends ChangeNotifier {
       'en-US': 'Change language',
       'es-ES': 'Cambiar idioma',
     },
+    'language': {
+      'it-IT': 'Cambia lingua',
+      'en-US': 'Change language',
+      'es-ES': 'Cambiar idioma',
+    },
+    'scroll_to_load_more': {
+      'it-IT': 'Scorri per caricare altri film',
+      'en-US': 'Scroll to load more movies',
+      'es-ES': 'Desliza para cargar más películas',
+    },
+    'see_all': {
+      'it-IT': 'Vedi tutti',
+      'en-US': 'See all',
+      'es-ES': 'Ver todo',
+    },
+    'logout': {
+      'it-IT': 'Esci',
+      'en-US': 'Logout',
+      'es-ES': 'Cerrar sesión',
+    },
+    'confirm_logout': {
+      'it-IT': 'Sei sicuro di voler uscire?',
+      'en-US': 'Are you sure you want to log out?',
+      'es-ES': '¿Estás seguro de que deseas cerrar sesión?',
+    },
+    'cancel': {
+      'it-IT': 'Annulla',
+      'en-US': 'Cancel',
+      'es-ES': 'Cancelar',
+    },
+    'confirm': {
+      'it-IT': 'Conferma',
+      'en-US': 'Confirm',
+      'es-ES': 'Confirmar',
+    },
+    'not_available_short': {
+      'it-IT': 'Non disponibile',
+      'en-US': 'Not available',
+      'es-ES': 'No disponible',
+    },
     // Altre chiavi possono essere aggiunte qui seguendo lo stesso schema
   };
 
